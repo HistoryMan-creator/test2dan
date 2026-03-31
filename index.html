@@ -4,24 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Финансовый дашборд</title>
-    <!-- Подключаем Tailwind CSS для стилей -->
+    <!-- Настройка Tailwind для поддержки темной темы через класс -->
+    <script>
+        tailwind = {
+            config: {
+                darkMode: 'class',
+                theme: {
+                    extend: {}
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключаем иконки Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Плавная смена темы */
+        html { transition: background-color 0.3s ease, color 0.3s ease; }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 font-sans min-h-screen transition-colors duration-200">
     
     <div class="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
         
         <!-- HEADER -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-900">Финансовый дашборд</h1>
-                <p class="text-slate-500 text-sm">Прогноз Cash Flow и учет (Vanilla JS)</p>
+                <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Финансовый дашборд</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Прогноз Cash Flow и учет (Vanilla JS)</p>
             </div>
-            <button onclick="app.openModalForAdd()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
-                <i data-lucide="plus" class="w-5 h-5"></i> Добавить операцию
-            </button>
+            <div class="flex items-center gap-3">
+                <!-- Кнопка смены темы (Теперь работает через CSS) -->
+                <button onclick="app.toggleTheme()" class="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm" title="Переключить тему">
+                    <div class="block dark:hidden"><i data-lucide="moon" class="w-5 h-5"></i></div>
+                    <div class="hidden dark:block"><i data-lucide="sun" class="w-5 h-5"></i></div>
+                </button>
+                <button onclick="app.openModalForAdd()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                    <i data-lucide="plus" class="w-5 h-5"></i> Добавить операцию
+                </button>
+            </div>
         </div>
 
         <!-- ALERTS -->
@@ -30,46 +50,46 @@
         <!-- TOP STATS -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- 1. Фактический баланс -->
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
-                <div class="p-3 bg-blue-100 text-blue-600 rounded-lg">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i data-lucide="wallet" class="w-6 h-6"></i>
                 </div>
                 <div class="flex-1">
-                    <p class="text-sm text-slate-500 font-medium mb-1">Фактический баланс</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Фактический баланс</p>
                     <div id="balance-container"></div>
                 </div>
             </div>
             
             <!-- 2. Плановые доходы -->
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-                <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-lg">
                     <i data-lucide="trending-up" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <p class="text-sm text-slate-500 font-medium">Плановые доходы</p>
-                    <h2 id="stat-planned-income" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Плановые доходы</p>
+                    <h2 id="stat-planned-income" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
                 </div>
             </div>
 
             <!-- 3. Плановые расходы -->
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-                <div class="p-3 bg-rose-100 text-rose-600 rounded-lg">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-lg">
                     <i data-lucide="trending-down" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <p class="text-sm text-slate-500 font-medium">Плановые расходы</p>
-                    <h2 id="stat-planned-expense" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Плановые расходы</p>
+                    <h2 id="stat-planned-expense" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
                 </div>
             </div>
 
             <!-- 4. Ожидаемый баланс -->
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
-                <div id="stat-expected-icon-bg" class="p-3 rounded-lg bg-indigo-100 text-indigo-600">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div id="stat-expected-icon-bg" class="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
                     <i data-lucide="pie-chart" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <p class="text-sm text-slate-500 font-medium" id="stat-expected-label">Ожидаемый баланс</p>
-                    <h2 id="stat-expected-balance" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium" id="stat-expected-label">Ожидаемый баланс</p>
+                    <h2 id="stat-expected-balance" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
                 </div>
             </div>
         </div>
@@ -77,12 +97,12 @@
         <!-- CHART SECTION -->
         <div class="space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="text-lg font-semibold flex items-center gap-2">
+                <h2 class="text-lg font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
                     <i data-lucide="trending-up" class="w-5 h-5 text-slate-400"></i> График движения средств
                 </h2>
                 <div class="flex items-center gap-2 text-sm">
-                    <span class="text-slate-500">Прогноз на:</span>
-                    <select id="forecast-days" onchange="app.setForecastDays(this.value)" class="bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
+                    <span class="text-slate-500 dark:text-slate-400">Прогноз на:</span>
+                    <select id="forecast-days" onchange="app.setForecastDays(this.value)" class="bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
                         <option value="14">14 дней</option>
                         <option value="30" selected>30 дней</option>
                         <option value="60">60 дней</option>
@@ -91,35 +111,36 @@
                 </div>
             </div>
             <div id="chart-container"></div>
+            <p class="text-xs text-center text-slate-400 dark:text-slate-500 mt-2"><i data-lucide="mouse-pointer-click" class="w-3 h-3 inline"></i> Кликните на любую точку графика, чтобы посмотреть точный баланс</p>
         </div>
 
         <!-- TRANSACTIONS TABLE & FILTERS -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-4 border-b border-slate-200 space-y-4">
+        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 space-y-4">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <h2 class="text-lg font-semibold flex items-center gap-2 text-slate-900 dark:text-white">
                         <i data-lucide="calendar" class="w-5 h-5 text-slate-400"></i> Операции
                     </h2>
                     
-                    <div class="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto" id="type-filters">
+                    <div class="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg w-full md:w-auto" id="type-filters">
                         <!-- Type buttons will be rendered here -->
                     </div>
                 </div>
 
-                <div class="flex flex-col md:flex-row gap-4 items-end bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <div class="flex flex-col md:flex-row gap-4 items-end bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50">
                     <div class="flex-1 w-full">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Категория</label>
-                        <select id="filter-category" onchange="app.setFilter('category', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Категория</label>
+                        <select id="filter-category" onchange="app.setFilter('category', this.value)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">Все категории</option>
                         </select>
                     </div>
                     <div class="flex-1 w-full">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Дата от</label>
-                        <input type="date" id="filter-date-from" onchange="app.setFilter('dateFrom', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Дата от</label>
+                        <input type="date" id="filter-date-from" onchange="app.setFilter('dateFrom', this.value)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex-1 w-full">
-                        <label class="block text-xs font-medium text-slate-500 mb-1">Дата до</label>
-                        <input type="date" id="filter-date-to" onchange="app.setFilter('dateTo', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Дата до</label>
+                        <input type="date" id="filter-date-to" onchange="app.setFilter('dateTo', this.value)" class="w-full bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div id="reset-filter-container"></div>
                 </div>
@@ -128,7 +149,7 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[600px]">
                     <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                        <tr class="bg-slate-50 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-sm border-b border-slate-200 dark:border-slate-700">
                             <th class="p-4 font-medium w-32">Дата</th>
                             <th class="p-4 font-medium">Категория / Источник</th>
                             <th class="p-4 font-medium text-right w-40">Сумма</th>
@@ -146,11 +167,11 @@
     </div>
 
     <!-- MODAL -->
-    <div id="modal-overlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 id="modal-title" class="text-xl font-bold text-slate-800">Новая операция</h3>
-                <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-700 transition-colors p-1 hover:bg-slate-200 rounded-md">
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-700">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
+                <h3 id="modal-title" class="text-xl font-bold text-slate-800 dark:text-white">Новая операция</h3>
+                <button type="button" onclick="app.closeModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -158,34 +179,34 @@
             <form id="tx-form" onsubmit="app.handleSubmit(event)" class="p-6 space-y-5 overflow-y-auto">
                 <input type="hidden" id="modal-tx-id">
                 
-                <div class="flex bg-slate-100 p-1 rounded-lg">
+                <div class="flex bg-slate-100 dark:bg-slate-900/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
                     <button type="button" id="btn-type-income" onclick="app.setModalType('income')" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Поступление</button>
                     <button type="button" id="btn-type-expense" onclick="app.setModalType('expense')" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Расход</button>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Дата операции</label>
-                    <input type="date" id="modal-date" required class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Дата операции</label>
+                    <input type="date" id="modal-date" required class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Сумма (₽)</label>
-                    <input type="number" id="modal-amount" required min="1" placeholder="Например: 50000" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Сумма (₽)</label>
+                    <input type="number" id="modal-amount" required min="1" placeholder="Например: 50000" class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Категория / Источник</label>
-                    <input type="text" id="modal-category" required placeholder="Введите или выберите ниже..." class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Категория / Источник</label>
+                    <input type="text" id="modal-category" required placeholder="Введите или выберите ниже..." class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                     <div id="category-suggestions" class="mt-2 flex flex-wrap gap-2"></div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Комментарий <span class="text-slate-400 font-normal">(необязательно)</span></label>
-                    <input type="text" id="modal-comment" placeholder="Краткое описание" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Комментарий <span class="text-slate-400 dark:text-slate-500 font-normal">(необязательно)</span></label>
+                    <input type="text" id="modal-comment" placeholder="Краткое описание" class="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                 </div>
 
-                <div class="pt-4 flex gap-3 border-t border-slate-100">
-                    <button type="button" onclick="app.closeModal()" class="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">Отмена</button>
+                <div class="pt-4 flex gap-3 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="app.closeModal()" class="flex-1 px-4 py-2.5 border border-slate-300 dark:border-slate-600 bg-transparent text-slate-700 dark:text-slate-300 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Отмена</button>
                     <button type="submit" id="modal-submit-btn" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">Добавить</button>
                 </div>
             </form>
@@ -211,8 +232,8 @@
             }
         };
 
-        const INCOME_CATEGORIES = ["Ozon", "Wildberries", "Яндекс.Маркет", "Мегамаркет", "Свой сайт"];
-        const EXPENSE_CATEGORIES = ["Закупка товара", "Реклама", "Логистика", "Налоги", "Кредит / займ", "Упаковка", "Зарплата", "Комиссии МП"];
+        const INCOME_CATEGORIES = ["Икеа", "Лаппа", "Кредит", "Возврат долга"];
+        const EXPENSE_CATEGORIES = ["Заказ Икеа", "Логистика из Европы", "Фулфилмент Александр", "Фулфилмент Казань", "Заказ Лаппа", "Кальянка", "Зп Раф", "Зп Илья", "Зп Данил"];
 
         // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
         const state = {
@@ -226,15 +247,23 @@
                 dateTo: ''
             },
             ui: {
+                theme: localStorage.getItem('finDash_theme') || 'light',
                 isEditingBalance: false,
                 tempBalance: 0,
-                modalType: 'income' // 'income' or 'expense'
+                modalType: 'income',
+                activeChartPoint: null 
             }
         };
 
         // --- ОСНОВНАЯ ЛОГИКА ---
         const app = {
             init() {
+                // Жестко проверяем и применяем тему при запуске
+                if (state.ui.theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
                 this.renderAll();
             },
 
@@ -243,13 +272,28 @@
                 localStorage.setItem('finDash_transactions', JSON.stringify(state.transactions));
             },
 
+            toggleTheme() {
+                // Надежное переключение класса на теге html
+                const isDark = document.documentElement.classList.contains('dark');
+                
+                if (isDark) {
+                    document.documentElement.classList.remove('dark');
+                    state.ui.theme = 'light';
+                } else {
+                    document.documentElement.classList.add('dark');
+                    state.ui.theme = 'dark';
+                }
+                
+                localStorage.setItem('finDash_theme', state.ui.theme);
+                this.renderChart(); // Обновляем цвета графика
+            },
+
             // --- РЕНДЕРИНГ ---
             renderAll() {
                 this.renderBalance();
                 this.renderStatsAndAlerts();
                 this.renderChart();
                 this.renderTableAndFilters();
-                // Перерисовываем иконки Lucide для новых элементов DOM
                 lucide.createIcons();
             },
 
@@ -258,21 +302,21 @@
                 if (state.ui.isEditingBalance) {
                     container.innerHTML = `
                         <div class="flex items-center gap-2">
-                            <input type="number" id="temp-balance-input" value="${state.ui.tempBalance}" class="w-full border-b border-blue-500 focus:outline-none text-xl font-bold py-1 bg-transparent" autofocus onkeydown="if(event.key==='Enter') app.saveBalance()">
-                            <button onclick="app.saveBalance()" class="text-emerald-600 p-1 hover:bg-emerald-50 rounded"><i data-lucide="save" class="w-4 h-4"></i></button>
-                            <button onclick="app.cancelEditBalance()" class="text-slate-400 p-1 hover:bg-slate-100 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+                            <input type="number" id="temp-balance-input" value="${state.ui.tempBalance}" class="w-full border-b border-blue-500 dark:border-blue-400 text-slate-900 dark:text-white focus:outline-none text-xl font-bold py-1 bg-transparent" autofocus onkeydown="if(event.key==='Enter') app.saveBalance()">
+                            <button onclick="app.saveBalance()" class="text-emerald-600 dark:text-emerald-400 p-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 rounded"><i data-lucide="save" class="w-4 h-4"></i></button>
+                            <button onclick="app.cancelEditBalance()" class="text-slate-400 dark:text-slate-500 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
                     `;
-                    // Фокус на инпут после рендера
                     setTimeout(() => document.getElementById('temp-balance-input').focus(), 0);
                 } else {
                     container.innerHTML = `
                         <div class="flex items-center gap-2 group cursor-pointer" onclick="app.editBalance()">
-                            <h2 class="text-2xl font-bold text-slate-900">${utils.formatMoney(state.currentBalance)}</h2>
-                            <i data-lucide="edit-2" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">${utils.formatMoney(state.currentBalance)}</h2>
+                            <i data-lucide="edit-2" class="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors"></i>
                         </div>
                     `;
                 }
+                lucide.createIcons();
             },
 
             calculateForecast() {
@@ -315,10 +359,10 @@
                 const alertsContainer = document.getElementById('alerts-container');
                 if (forecast.firstGap) {
                     alertsContainer.innerHTML = `
-                        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
-                            <i data-lucide="alert-circle" class="text-red-500 shrink-0 mt-0.5 w-5 h-5"></i>
+                        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
+                            <i data-lucide="alert-circle" class="text-red-500 dark:text-red-400 shrink-0 mt-0.5 w-5 h-5"></i>
                             <div>
-                                <h3 class="font-semibold text-red-900">Внимание: Кассовый разрыв!</h3>
+                                <h3 class="font-semibold text-red-900 dark:text-red-200">Внимание: Кассовый разрыв!</h3>
                                 <p class="text-sm mt-1">Ожидается дефицит средств <strong>${utils.formatDate(forecast.firstGap.date)}</strong>. Не хватает: <span class="font-bold">${utils.formatMoney(forecast.firstGap.deficit)}</span></p>
                             </div>
                         </div>
@@ -339,12 +383,17 @@
                 const expectedBg = document.getElementById('stat-expected-icon-bg');
                 const expectedText = document.getElementById('stat-expected-balance');
                 if (forecast.finalBalance >= 0) {
-                    expectedBg.className = 'p-3 rounded-lg bg-indigo-100 text-indigo-600';
-                    expectedText.className = 'text-2xl font-bold text-slate-900';
+                    expectedBg.className = 'p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400';
+                    expectedText.className = 'text-2xl font-bold text-slate-900 dark:text-white';
                 } else {
-                    expectedBg.className = 'p-3 rounded-lg bg-red-100 text-red-600';
-                    expectedText.className = 'text-2xl font-bold text-red-600';
+                    expectedBg.className = 'p-3 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400';
+                    expectedText.className = 'text-2xl font-bold text-red-600 dark:text-red-400';
                 }
+            },
+
+            setActiveChartPoint(index) {
+                state.ui.activeChartPoint = index;
+                this.renderChart();
             },
 
             renderChart() {
@@ -360,6 +409,7 @@
                 const height = 300;
                 const paddingX = 40;
                 const paddingY = 40;
+                const isDark = document.documentElement.classList.contains('dark');
                 
                 const maxBalance = Math.max(...chartData.map(d => d.balance), 10000);
                 const minBalance = Math.min(...chartData.map(d => d.balance), 0);
@@ -373,42 +423,96 @@
                 const zeroY = getY(0);
                 const points = chartData.map((d, i) => `${getX(i)},${getY(d.balance)}`).join(' ');
 
-                let svg = `<div class="w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                            <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[600px] font-sans">
-                                <line x1="${paddingX}" y1="${zeroY}" x2="${width - paddingX}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4" />`;
+                // Цветовая схема
+                const gridLineColor = isDark ? '#334155' : '#94a3b8';
+                const gapBgColor = isDark ? '#451a1e' : '#fef2f2';
+                const gapLineColor = isDark ? '#ef4444' : '#ef4444';
+                const mainLineColor = isDark ? '#38bdf8' : '#3b82f6';
+                const pointBgColor = isDark ? '#1e293b' : '#ffffff';
+                const textColor = isDark ? '#94a3b8' : '#64748b';
+
+                let svg = `<div class="w-full overflow-x-auto bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-4 relative">
+                            <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[600px] font-sans relative z-0">
+                                <line x1="${paddingX}" y1="${zeroY}" x2="${width - paddingX}" y2="${zeroY}" stroke="${gridLineColor}" stroke-width="1" stroke-dasharray="4 4" />`;
                 
-                // Red gaps
+                // Зоны кассового разрыва (красный фон)
                 chartData.forEach((d, i) => {
                     if (d.balance < 0 && i < chartData.length - 1) {
                         const x1 = getX(i);
                         const x2 = getX(i + 1);
-                        svg += `<rect x="${x1}" y="${zeroY}" width="${x2 - x1}" height="${height - paddingY - zeroY}" fill="#fef2f2" />`;
+                        svg += `<rect x="${x1}" y="${zeroY}" width="${x2 - x1}" height="${height - paddingY - zeroY}" fill="${gapBgColor}" />`;
                     }
                 });
 
-                // Line
-                svg += `<polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+                // Основная линия графика
+                svg += `<polyline points="${points}" fill="none" stroke="${mainLineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
 
-                // Points & Text
+                // Отрисовка точек и текста (кроме активной)
                 chartData.forEach((d, i) => {
                     const hasIncome = d.income > 0;
                     const hasExpense = d.expense > 0;
                     const isImportant = hasIncome || hasExpense || d.isGap;
+                    const isHovered = state.ui.activeChartPoint === i;
                     
-                    if (!isImportant && i % 5 !== 0 && i !== chartData.length - 1) return;
+                    if (!isImportant && i % 5 !== 0 && i !== chartData.length - 1 && !isHovered) return;
 
-                    svg += `<circle cx="${getX(i)}" cy="${getY(d.balance)}" r="${isImportant ? 4 : 2}" fill="${d.isGap ? '#ef4444' : '#ffffff'}" stroke="${d.isGap ? '#ef4444' : '#3b82f6'}" stroke-width="2" />`;
+                    svg += `<circle cx="${getX(i)}" cy="${getY(d.balance)}" r="${isImportant ? 4 : 2}" fill="${d.isGap ? gapLineColor : pointBgColor}" stroke="${d.isGap ? gapLineColor : mainLineColor}" stroke-width="2" />`;
                     
-                    if (i % 5 === 0 || i === chartData.length - 1 || d.isGap) {
-                        svg += `<text x="${getX(i)}" y="${height - 10}" font-size="10" fill="#64748b" text-anchor="middle">${d.label}</text>`;
+                    // Текст подписываем только для важных, неактивных точек
+                    if ((i % 5 === 0 || i === chartData.length - 1 || d.isGap) && !isHovered) {
+                        svg += `<text x="${getX(i)}" y="${height - 10}" font-size="10" fill="${textColor}" text-anchor="middle">${d.label}</text>`;
                     }
-                    if (hasIncome) {
-                        svg += `<text x="${getX(i)}" y="${getY(d.balance) - 15}" font-size="10" fill="#10b981" text-anchor="middle" font-weight="bold">+${d.income / 1000}k</text>`;
+                    if (hasIncome && !isHovered) {
+                        svg += `<text x="${getX(i)}" y="${getY(d.balance) - 15}" font-size="10" fill="${isDark ? '#34d399' : '#10b981'}" text-anchor="middle" font-weight="bold">+${d.income / 1000}k</text>`;
                     }
-                    if (hasExpense) {
-                        svg += `<text x="${getX(i)}" y="${getY(d.balance) + 20}" font-size="10" fill="#ef4444" text-anchor="middle" font-weight="bold">-${d.expense / 1000}k</text>`;
+                    if (hasExpense && !isHovered) {
+                        svg += `<text x="${getX(i)}" y="${getY(d.balance) + 20}" font-size="10" fill="${gapLineColor}" text-anchor="middle" font-weight="bold">-${d.expense / 1000}k</text>`;
                     }
                 });
+
+                // Отрисовка Активной карточки (Tooltip) поверх всего
+                if (state.ui.activeChartPoint !== null && chartData[state.ui.activeChartPoint]) {
+                    const i = state.ui.activeChartPoint;
+                    const d = chartData[i];
+                    const actX = getX(i);
+                    const actY = getY(d.balance);
+                    
+                    // Вертикальная пунктирная направляющая
+                    svg += `<line x1="${actX}" y1="${paddingY}" x2="${actX}" y2="${height - paddingY}" stroke="${isDark ? '#64748b' : '#94a3b8'}" stroke-width="1" stroke-dasharray="4 4" />`;
+                    // Увеличенная точка
+                    svg += `<circle cx="${actX}" cy="${actY}" r="6" fill="${mainLineColor}" stroke="${pointBgColor}" stroke-width="2" />`;
+
+                    // Карточка
+                    const boxW = 140;
+                    const boxH = 65;
+                    let boxX = actX - boxW / 2;
+                    if (boxX < 0) boxX = 0;
+                    if (boxX + boxW > width) boxX = width - boxW;
+                    let boxY = actY - boxH - 15;
+                    if (boxY < 0) boxY = actY + 20; // Опускаем вниз, если не влезает наверх
+
+                    svg += `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" fill="${isDark ? '#1e293b' : '#ffffff'}" stroke="${isDark ? '#475569' : '#e2e8f0'}" stroke-width="1" rx="6" />`;
+                    svg += `<text x="${boxX + boxW/2}" y="${boxY + 20}" font-size="12" fill="${textColor}" text-anchor="middle">${d.label}</text>`;
+                    svg += `<text x="${boxX + boxW/2}" y="${boxY + 40}" font-size="16" fill="${isDark ? '#f8fafc' : '#0f172a'}" text-anchor="middle" font-weight="bold">${utils.formatMoney(d.balance)}</text>`;
+                    
+                    // Мелкие доходы/расходы в тултипе
+                    if (d.income > 0 || d.expense > 0) {
+                        let subText = '';
+                        if (d.income > 0) subText += `+${utils.formatMoney(d.income)} `;
+                        if (d.expense > 0) subText += `-${utils.formatMoney(d.expense)}`;
+                        svg += `<text x="${boxX + boxW/2}" y="${boxY + 56}" font-size="10" fill="${isDark ? '#94a3b8' : '#64748b'}" text-anchor="middle">${subText}</text>`;
+                    }
+                }
+
+                // Интерактивные прозрачные хитбоксы для клика (поверх всех слоев)
+                svg += `<g id="hitboxes">`;
+                chartData.forEach((d, i) => {
+                    const x1 = i === 0 ? 0 : getX(i) - (getX(i) - getX(i-1))/2;
+                    const x2 = i === chartData.length - 1 ? width : getX(i) + (getX(i+1) - getX(i))/2;
+                    // Прозрачный прямоугольник на всю высоту столбца
+                    svg += `<rect x="${x1}" y="0" width="${x2-x1}" height="${height}" fill="transparent" cursor="pointer" onclick="app.setActiveChartPoint(${i})" />`;
+                });
+                svg += `</g>`;
 
                 svg += `</svg></div>`;
                 container.innerHTML = svg;
@@ -416,12 +520,24 @@
 
             renderTableAndFilters() {
                 // Render Type Filters
-                const typeFiltersHTML = `
-                    <button onclick="app.setFilter('type', 'all')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'all' ? 'bg-white shadow-sm font-medium' : 'text-slate-500 hover:text-slate-800'}">Все</button>
-                    <button onclick="app.setFilter('type', 'income')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'income' ? 'bg-white shadow-sm font-medium text-emerald-600' : 'text-slate-500 hover:text-slate-800'}">Доходы</button>
-                    <button onclick="app.setFilter('type', 'expense')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'expense' ? 'bg-white shadow-sm font-medium text-rose-600' : 'text-slate-500 hover:text-slate-800'}">Расходы</button>
+                const baseClass = "flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ";
+                const inactiveClass = baseClass + "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200";
+                
+                const allClass = state.filters.type === 'all' 
+                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-white" 
+                    : inactiveClass;
+                const incomeClass = state.filters.type === 'income' 
+                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-emerald-600 dark:text-emerald-400" 
+                    : inactiveClass;
+                const expenseClass = state.filters.type === 'expense' 
+                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-rose-600 dark:text-rose-400" 
+                    : inactiveClass;
+
+                document.getElementById('type-filters').innerHTML = `
+                    <button onclick="app.setFilter('type', 'all')" class="${allClass}">Все</button>
+                    <button onclick="app.setFilter('type', 'income')" class="${incomeClass}">Доходы</button>
+                    <button onclick="app.setFilter('type', 'expense')" class="${expenseClass}">Расходы</button>
                 `;
-                document.getElementById('type-filters').innerHTML = typeFiltersHTML;
 
                 // Categories dropdown options
                 const uniqueCategories = [...new Set(state.transactions.map(t => t.category))].filter(Boolean);
@@ -434,7 +550,7 @@
                 // Reset button
                 const resetContainer = document.getElementById('reset-filter-container');
                 if (state.filters.category || state.filters.dateFrom || state.filters.dateTo || state.filters.type !== 'all') {
-                    resetContainer.innerHTML = `<button onclick="app.resetFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors w-full md:w-auto flex items-center justify-center gap-1"><i data-lucide="filter" class="w-4 h-4"></i> Сбросить</button>`;
+                    resetContainer.innerHTML = `<button onclick="app.resetFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors w-full md:w-auto flex items-center justify-center gap-1"><i data-lucide="filter" class="w-4 h-4"></i> Сбросить</button>`;
                 } else {
                     resetContainer.innerHTML = '';
                 }
@@ -453,7 +569,7 @@
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="5" class="p-12 text-center">
-                                <div class="flex flex-col items-center justify-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
                                     <i data-lucide="calendar" class="w-8 h-8 mb-2 opacity-50"></i>
                                     <p>Нет операций для отображения</p>
                                     <p class="text-xs mt-1">Измените фильтры или добавьте новую</p>
@@ -463,37 +579,37 @@
                     `;
                 } else {
                     tbody.innerHTML = filtered.map(tx => `
-                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
-                            <td class="p-4 text-sm whitespace-nowrap text-slate-600 font-medium">${utils.formatDate(tx.date)}</td>
+                        <tr class="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                            <td class="p-4 text-sm whitespace-nowrap text-slate-600 dark:text-slate-300 font-medium">${utils.formatDate(tx.date)}</td>
                             <td class="p-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="p-2 rounded-lg ${tx.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+                                    <div class="p-2 rounded-lg ${tx.type === 'income' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400'}">
                                         <i data-lucide="${tx.type === 'income' ? 'trending-up' : 'trending-down'}" class="w-4 h-4"></i>
                                     </div>
                                     <div>
-                                        <p class="font-medium text-slate-900">${tx.category}</p>
-                                        ${tx.comment ? `<p class="text-xs text-slate-500 mt-0.5">${tx.comment}</p>` : ''}
+                                        <p class="font-medium text-slate-900 dark:text-white">${tx.category}</p>
+                                        ${tx.comment ? `<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">${tx.comment}</p>` : ''}
                                     </div>
                                 </div>
                             </td>
-                            <td class="p-4 font-bold text-right whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+                            <td class="p-4 font-bold text-right whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}">
                                 ${tx.type === 'income' ? '+' : '-'}${utils.formatMoney(tx.amount)}
                             </td>
                             <td class="p-4">
                                 ${tx.status === 'done' 
-                                    ? `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200"><i data-lucide="check-circle" class="w-3 h-3"></i> Выполнено</span>` 
-                                    : `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">В плане</span>`
+                                    ? `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600"><i data-lucide="check-circle" class="w-3 h-3"></i> Выполнено</span>` 
+                                    : `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/50">В плане</span>`
                                 }
                             </td>
                             <td class="p-4 text-center">
                                 <div class="flex items-center justify-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                     ${tx.status === 'planned' ? `
-                                        <button onclick="app.markAsDone('${tx.id}')" title="Отметить как выполненное" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><i data-lucide="check-circle" class="w-4 h-4"></i></button>
+                                        <button onclick="app.markAsDone('${tx.id}')" title="Отметить как выполненное" class="p-1.5 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 rounded-lg transition-colors"><i data-lucide="check-circle" class="w-4 h-4"></i></button>
                                     ` : `
-                                        <button onclick="app.markAsPlanned('${tx.id}')" title="Вернуть в план" class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"><i data-lucide="undo-2" class="w-4 h-4"></i></button>
+                                        <button onclick="app.markAsPlanned('${tx.id}')" title="Вернуть в план" class="p-1.5 text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 rounded-lg transition-colors"><i data-lucide="undo-2" class="w-4 h-4"></i></button>
                                     `}
-                                    <button onclick="app.openModalForEdit('${tx.id}')" title="Редактировать" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
-                                    <button onclick="app.deleteTransaction('${tx.id}')" title="Удалить" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    <button onclick="app.openModalForEdit('${tx.id}')" title="Редактировать" class="p-1.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-lg transition-colors"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                    <button onclick="app.deleteTransaction('${tx.id}')" title="Удалить" class="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/40 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                 </div>
                             </td>
                         </tr>
@@ -524,6 +640,7 @@
             // Настройки прогноза
             setForecastDays(days) {
                 state.forecastDays = Number(days);
+                state.ui.activeChartPoint = null; // Сбрасываем выбор при смене диапазона
                 this.renderAll();
             },
 
@@ -615,21 +732,22 @@
                 const btnExpense = document.getElementById('btn-type-expense');
                 const suggestionsContainer = document.getElementById('category-suggestions');
 
-                // Подтягиваем пользовательские категории из истории операций
                 const userCats = [...new Set(state.transactions.filter(t => t.type === type).map(t => t.category))];
 
+                const baseBtnClass = 'flex-1 py-2 text-sm font-medium rounded-md transition-all ';
+
                 if (type === 'income') {
-                    btnIncome.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all bg-white shadow-sm text-emerald-600';
-                    btnExpense.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all text-slate-500 hover:text-slate-700';
+                    btnIncome.className = baseBtnClass + 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400';
+                    btnExpense.className = baseBtnClass + 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200';
                     
                     const allCats = [...new Set([...INCOME_CATEGORIES, ...userCats])];
-                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs rounded-lg transition-colors border border-slate-200 shadow-sm">${c}</button>`).join('');
+                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg transition-colors border border-slate-200 dark:border-slate-600 shadow-sm">${c}</button>`).join('');
                 } else {
-                    btnExpense.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all bg-white shadow-sm text-rose-600';
-                    btnIncome.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all text-slate-500 hover:text-slate-700';
+                    btnExpense.className = baseBtnClass + 'bg-white dark:bg-slate-700 shadow-sm text-rose-600 dark:text-rose-400';
+                    btnIncome.className = baseBtnClass + 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200';
                     
                     const allCats = [...new Set([...EXPENSE_CATEGORIES, ...userCats])];
-                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs rounded-lg transition-colors border border-slate-200 shadow-sm">${c}</button>`).join('');
+                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg transition-colors border border-slate-200 dark:border-slate-600 shadow-sm">${c}</button>`).join('');
                 }
             },
 
@@ -646,10 +764,8 @@
                 if (!amount || !category) return;
 
                 if (id) {
-                    // Редактирование
                     const tx = state.transactions.find(t => t.id === id);
                     if (tx) {
-                        // Корректировка баланса, если меняем выполненную транзакцию
                         if (tx.status === 'done') {
                             const oldVal = (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
                             const newVal = (type === 'income' ? 1 : -1) * amount;
@@ -662,7 +778,6 @@
                         tx.comment = comment;
                     }
                 } else {
-                    // Создание
                     state.transactions.push({
                         id: Date.now().toString(),
                         type,
@@ -680,7 +795,6 @@
             }
         };
 
-        // Запуск при загрузке страницы
         window.addEventListener('DOMContentLoaded', () => {
             app.init();
         });
