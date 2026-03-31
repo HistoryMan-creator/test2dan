@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финансовый дашборд</title>
+    <!-- Подключаем Tailwind CSS для стилей -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключаем иконки Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+    
+    <div class="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+        
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Финансовый дашборд</h1>
+                <p class="text-slate-500 text-sm">Прогноз Cash Flow и учет (Vanilla JS)</p>
+            </div>
+            <button onclick="app.openModalForAdd()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                <i data-lucide="plus" class="w-5 h-5"></i> Добавить операцию
+            </button>
+        </div>
+
+        <!-- ALERTS -->
+        <div id="alerts-container"></div>
+
+        <!-- TOP STATS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 1. Фактический баланс -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-start gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-blue-100 text-blue-600 rounded-lg">
+                    <i data-lucide="wallet" class="w-6 h-6"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm text-slate-500 font-medium mb-1">Фактический баланс</p>
+                    <div id="balance-container"></div>
+                </div>
+            </div>
+            
+            <!-- 2. Плановые доходы -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">Плановые доходы</p>
+                    <h2 id="stat-planned-income" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                </div>
+            </div>
+
+            <!-- 3. Плановые расходы -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div class="p-3 bg-rose-100 text-rose-600 rounded-lg">
+                    <i data-lucide="trending-down" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">Плановые расходы</p>
+                    <h2 id="stat-planned-expense" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                </div>
+            </div>
+
+            <!-- 4. Ожидаемый баланс -->
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4 transition-all hover:shadow-md">
+                <div id="stat-expected-icon-bg" class="p-3 rounded-lg bg-indigo-100 text-indigo-600">
+                    <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-slate-500 font-medium" id="stat-expected-label">Ожидаемый баланс</p>
+                    <h2 id="stat-expected-balance" class="text-2xl font-bold text-slate-900">0 ₽</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART SECTION -->
+        <div class="space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-5 h-5 text-slate-400"></i> График движения средств
+                </h2>
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="text-slate-500">Прогноз на:</span>
+                    <select id="forecast-days" onchange="app.setForecastDays(this.value)" class="bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer">
+                        <option value="14">14 дней</option>
+                        <option value="30" selected>30 дней</option>
+                        <option value="60">60 дней</option>
+                        <option value="90">90 дней</option>
+                    </select>
+                </div>
+            </div>
+            <div id="chart-container"></div>
+        </div>
+
+        <!-- TRANSACTIONS TABLE & FILTERS -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-slate-200 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-lg font-semibold flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-5 h-5 text-slate-400"></i> Операции
+                    </h2>
+                    
+                    <div class="flex bg-slate-100 p-1 rounded-lg w-full md:w-auto" id="type-filters">
+                        <!-- Type buttons will be rendered here -->
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-4 items-end bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <div class="flex-1 w-full">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Категория</label>
+                        <select id="filter-category" onchange="app.setFilter('category', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Все категории</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Дата от</label>
+                        <input type="date" id="filter-date-from" onchange="app.setFilter('dateFrom', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Дата до</label>
+                        <input type="date" id="filter-date-to" onchange="app.setFilter('dateTo', this.value)" class="w-full bg-white border border-slate-300 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="reset-filter-container"></div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                            <th class="p-4 font-medium w-32">Дата</th>
+                            <th class="p-4 font-medium">Категория / Источник</th>
+                            <th class="p-4 font-medium text-right w-40">Сумма</th>
+                            <th class="p-4 font-medium w-32">Статус</th>
+                            <th class="p-4 font-medium text-center w-32">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Transactions will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 id="modal-title" class="text-xl font-bold text-slate-800">Новая операция</h3>
+                <button onclick="app.closeModal()" class="text-slate-400 hover:text-slate-700 transition-colors p-1 hover:bg-slate-200 rounded-md">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="tx-form" onsubmit="app.handleSubmit(event)" class="p-6 space-y-5 overflow-y-auto">
+                <input type="hidden" id="modal-tx-id">
+                
+                <div class="flex bg-slate-100 p-1 rounded-lg">
+                    <button type="button" id="btn-type-income" onclick="app.setModalType('income')" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Поступление</button>
+                    <button type="button" id="btn-type-expense" onclick="app.setModalType('expense')" class="flex-1 py-2 text-sm font-medium rounded-md transition-all">Расход</button>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Дата операции</label>
+                    <input type="date" id="modal-date" required class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Сумма (₽)</label>
+                    <input type="number" id="modal-amount" required min="1" placeholder="Например: 50000" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Категория / Источник</label>
+                    <input type="text" id="modal-category" required placeholder="Введите или выберите ниже..." class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                    <div id="category-suggestions" class="mt-2 flex flex-wrap gap-2"></div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Комментарий <span class="text-slate-400 font-normal">(необязательно)</span></label>
+                    <input type="text" id="modal-comment" placeholder="Краткое описание" class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+
+                <div class="pt-4 flex gap-3 border-t border-slate-100">
+                    <button type="button" onclick="app.closeModal()" class="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">Отмена</button>
+                    <button type="submit" id="modal-submit-btn" class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ВЕСЬ JS КОД -->
+    <script>
+        // --- УТИЛИТЫ ---
+        const utils = {
+            formatMoney: (amount) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount),
+            formatDate: (dateString) => {
+                const [year, month, day] = dateString.split('-');
+                return new Date(year, month - 1, day).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+            },
+            getDateOffset: (days) => {
+                const date = new Date();
+                date.setDate(date.getDate() + days);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+        };
+
+        const INCOME_CATEGORIES = ["Ozon", "Wildberries", "Яндекс.Маркет", "Мегамаркет", "Свой сайт"];
+        const EXPENSE_CATEGORIES = ["Закупка товара", "Реклама", "Логистика", "Налоги", "Кредит / займ", "Упаковка", "Зарплата", "Комиссии МП"];
+
+        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
+        const state = {
+            currentBalance: Number(localStorage.getItem('finDash_balance')) || 0,
+            transactions: JSON.parse(localStorage.getItem('finDash_transactions')) || [],
+            forecastDays: 30,
+            filters: {
+                type: 'all',
+                category: '',
+                dateFrom: '',
+                dateTo: ''
+            },
+            ui: {
+                isEditingBalance: false,
+                tempBalance: 0,
+                modalType: 'income' // 'income' or 'expense'
+            }
+        };
+
+        // --- ОСНОВНАЯ ЛОГИКА ---
+        const app = {
+            init() {
+                this.renderAll();
+            },
+
+            saveState() {
+                localStorage.setItem('finDash_balance', state.currentBalance.toString());
+                localStorage.setItem('finDash_transactions', JSON.stringify(state.transactions));
+            },
+
+            // --- РЕНДЕРИНГ ---
+            renderAll() {
+                this.renderBalance();
+                this.renderStatsAndAlerts();
+                this.renderChart();
+                this.renderTableAndFilters();
+                // Перерисовываем иконки Lucide для новых элементов DOM
+                lucide.createIcons();
+            },
+
+            renderBalance() {
+                const container = document.getElementById('balance-container');
+                if (state.ui.isEditingBalance) {
+                    container.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="temp-balance-input" value="${state.ui.tempBalance}" class="w-full border-b border-blue-500 focus:outline-none text-xl font-bold py-1 bg-transparent" autofocus onkeydown="if(event.key==='Enter') app.saveBalance()">
+                            <button onclick="app.saveBalance()" class="text-emerald-600 p-1 hover:bg-emerald-50 rounded"><i data-lucide="save" class="w-4 h-4"></i></button>
+                            <button onclick="app.cancelEditBalance()" class="text-slate-400 p-1 hover:bg-slate-100 rounded"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        </div>
+                    `;
+                    // Фокус на инпут после рендера
+                    setTimeout(() => document.getElementById('temp-balance-input').focus(), 0);
+                } else {
+                    container.innerHTML = `
+                        <div class="flex items-center gap-2 group cursor-pointer" onclick="app.editBalance()">
+                            <h2 class="text-2xl font-bold text-slate-900">${utils.formatMoney(state.currentBalance)}</h2>
+                            <i data-lucide="edit-2" class="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors"></i>
+                        </div>
+                    `;
+                }
+            },
+
+            calculateForecast() {
+                const data = [];
+                let runningBalance = Number(state.currentBalance);
+                let firstGap = null;
+
+                for (let i = 0; i <= state.forecastDays; i++) {
+                    const targetDate = utils.getDateOffset(i);
+                    const dayTxs = state.transactions.filter(t => t.date === targetDate && t.status === 'planned');
+                    
+                    const dayIncome = dayTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+                    const dayExpense = dayTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+                    
+                    runningBalance += dayIncome;
+                    runningBalance -= dayExpense;
+
+                    if (runningBalance < 0 && !firstGap) {
+                        firstGap = { date: targetDate, deficit: Math.abs(runningBalance) };
+                    }
+
+                    data.push({
+                        dayIndex: i,
+                        date: targetDate,
+                        label: utils.formatDate(targetDate),
+                        balance: runningBalance,
+                        income: dayIncome,
+                        expense: dayExpense,
+                        isGap: runningBalance < 0
+                    });
+                }
+
+                return { chartData: data, firstGap, finalBalance: runningBalance };
+            },
+
+            renderStatsAndAlerts() {
+                const forecast = this.calculateForecast();
+                
+                // Alerts
+                const alertsContainer = document.getElementById('alerts-container');
+                if (forecast.firstGap) {
+                    alertsContainer.innerHTML = `
+                        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-xl flex items-start gap-3 shadow-sm animate-pulse">
+                            <i data-lucide="alert-circle" class="text-red-500 shrink-0 mt-0.5 w-5 h-5"></i>
+                            <div>
+                                <h3 class="font-semibold text-red-900">Внимание: Кассовый разрыв!</h3>
+                                <p class="text-sm mt-1">Ожидается дефицит средств <strong>${utils.formatDate(forecast.firstGap.date)}</strong>. Не хватает: <span class="font-bold">${utils.formatMoney(forecast.firstGap.deficit)}</span></p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    alertsContainer.innerHTML = '';
+                }
+
+                // Stats
+                const plannedIncome = state.transactions.filter(t => t.type === 'income' && t.status === 'planned').reduce((s, t) => s + Number(t.amount), 0);
+                const plannedExpense = state.transactions.filter(t => t.type === 'expense' && t.status === 'planned').reduce((s, t) => s + Number(t.amount), 0);
+                
+                document.getElementById('stat-planned-income').textContent = utils.formatMoney(plannedIncome);
+                document.getElementById('stat-planned-expense').textContent = utils.formatMoney(plannedExpense);
+                document.getElementById('stat-expected-balance').textContent = utils.formatMoney(forecast.finalBalance);
+                document.getElementById('stat-expected-label').textContent = `Ожидаемый баланс (+${state.forecastDays}д)`;
+                
+                const expectedBg = document.getElementById('stat-expected-icon-bg');
+                const expectedText = document.getElementById('stat-expected-balance');
+                if (forecast.finalBalance >= 0) {
+                    expectedBg.className = 'p-3 rounded-lg bg-indigo-100 text-indigo-600';
+                    expectedText.className = 'text-2xl font-bold text-slate-900';
+                } else {
+                    expectedBg.className = 'p-3 rounded-lg bg-red-100 text-red-600';
+                    expectedText.className = 'text-2xl font-bold text-red-600';
+                }
+            },
+
+            renderChart() {
+                const container = document.getElementById('chart-container');
+                const { chartData } = this.calculateForecast();
+                
+                if (chartData.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const width = 800;
+                const height = 300;
+                const paddingX = 40;
+                const paddingY = 40;
+                
+                const maxBalance = Math.max(...chartData.map(d => d.balance), 10000);
+                const minBalance = Math.min(...chartData.map(d => d.balance), 0);
+                
+                const yRange = (maxBalance - minBalance) * 1.2 || 1; 
+                const yMinAdjusted = minBalance - (maxBalance - minBalance) * 0.1;
+
+                const getX = (index) => paddingX + (index / (chartData.length - 1)) * (width - paddingX * 2);
+                const getY = (val) => height - paddingY - ((val - yMinAdjusted) / yRange) * (height - paddingY * 2);
+
+                const zeroY = getY(0);
+                const points = chartData.map((d, i) => `${getX(i)},${getY(d.balance)}`).join(' ');
+
+                let svg = `<div class="w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                            <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[600px] font-sans">
+                                <line x1="${paddingX}" y1="${zeroY}" x2="${width - paddingX}" y2="${zeroY}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4" />`;
+                
+                // Red gaps
+                chartData.forEach((d, i) => {
+                    if (d.balance < 0 && i < chartData.length - 1) {
+                        const x1 = getX(i);
+                        const x2 = getX(i + 1);
+                        svg += `<rect x="${x1}" y="${zeroY}" width="${x2 - x1}" height="${height - paddingY - zeroY}" fill="#fef2f2" />`;
+                    }
+                });
+
+                // Line
+                svg += `<polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+
+                // Points & Text
+                chartData.forEach((d, i) => {
+                    const hasIncome = d.income > 0;
+                    const hasExpense = d.expense > 0;
+                    const isImportant = hasIncome || hasExpense || d.isGap;
+                    
+                    if (!isImportant && i % 5 !== 0 && i !== chartData.length - 1) return;
+
+                    svg += `<circle cx="${getX(i)}" cy="${getY(d.balance)}" r="${isImportant ? 4 : 2}" fill="${d.isGap ? '#ef4444' : '#ffffff'}" stroke="${d.isGap ? '#ef4444' : '#3b82f6'}" stroke-width="2" />`;
+                    
+                    if (i % 5 === 0 || i === chartData.length - 1 || d.isGap) {
+                        svg += `<text x="${getX(i)}" y="${height - 10}" font-size="10" fill="#64748b" text-anchor="middle">${d.label}</text>`;
+                    }
+                    if (hasIncome) {
+                        svg += `<text x="${getX(i)}" y="${getY(d.balance) - 15}" font-size="10" fill="#10b981" text-anchor="middle" font-weight="bold">+${d.income / 1000}k</text>`;
+                    }
+                    if (hasExpense) {
+                        svg += `<text x="${getX(i)}" y="${getY(d.balance) + 20}" font-size="10" fill="#ef4444" text-anchor="middle" font-weight="bold">-${d.expense / 1000}k</text>`;
+                    }
+                });
+
+                svg += `</svg></div>`;
+                container.innerHTML = svg;
+            },
+
+            renderTableAndFilters() {
+                // Render Type Filters
+                const typeFiltersHTML = `
+                    <button onclick="app.setFilter('type', 'all')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'all' ? 'bg-white shadow-sm font-medium' : 'text-slate-500 hover:text-slate-800'}">Все</button>
+                    <button onclick="app.setFilter('type', 'income')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'income' ? 'bg-white shadow-sm font-medium text-emerald-600' : 'text-slate-500 hover:text-slate-800'}">Доходы</button>
+                    <button onclick="app.setFilter('type', 'expense')" class="flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ${state.filters.type === 'expense' ? 'bg-white shadow-sm font-medium text-rose-600' : 'text-slate-500 hover:text-slate-800'}">Расходы</button>
+                `;
+                document.getElementById('type-filters').innerHTML = typeFiltersHTML;
+
+                // Categories dropdown options
+                const uniqueCategories = [...new Set(state.transactions.map(t => t.category))].filter(Boolean);
+                let catOptions = `<option value="">Все категории</option>`;
+                uniqueCategories.forEach(cat => {
+                    catOptions += `<option value="${cat}" ${state.filters.category === cat ? 'selected' : ''}>${cat}</option>`;
+                });
+                document.getElementById('filter-category').innerHTML = catOptions;
+
+                // Reset button
+                const resetContainer = document.getElementById('reset-filter-container');
+                if (state.filters.category || state.filters.dateFrom || state.filters.dateTo || state.filters.type !== 'all') {
+                    resetContainer.innerHTML = `<button onclick="app.resetFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-200 hover:bg-slate-300 rounded-lg transition-colors w-full md:w-auto flex items-center justify-center gap-1"><i data-lucide="filter" class="w-4 h-4"></i> Сбросить</button>`;
+                } else {
+                    resetContainer.innerHTML = '';
+                }
+
+                // Filter transactions
+                const filtered = state.transactions
+                    .filter(t => state.filters.type === 'all' ? true : t.type === state.filters.type)
+                    .filter(t => state.filters.category === '' ? true : t.category === state.filters.category)
+                    .filter(t => state.filters.dateFrom === '' ? true : t.date >= state.filters.dateFrom)
+                    .filter(t => state.filters.dateTo === '' ? true : t.date <= state.filters.dateTo)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                // Render Table Body
+                const tbody = document.getElementById('table-body');
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="p-12 text-center">
+                                <div class="flex flex-col items-center justify-center text-slate-400">
+                                    <i data-lucide="calendar" class="w-8 h-8 mb-2 opacity-50"></i>
+                                    <p>Нет операций для отображения</p>
+                                    <p class="text-xs mt-1">Измените фильтры или добавьте новую</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    tbody.innerHTML = filtered.map(tx => `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
+                            <td class="p-4 text-sm whitespace-nowrap text-slate-600 font-medium">${utils.formatDate(tx.date)}</td>
+                            <td class="p-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 rounded-lg ${tx.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}">
+                                        <i data-lucide="${tx.type === 'income' ? 'trending-up' : 'trending-down'}" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-900">${tx.category}</p>
+                                        ${tx.comment ? `<p class="text-xs text-slate-500 mt-0.5">${tx.comment}</p>` : ''}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-4 font-bold text-right whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+                                ${tx.type === 'income' ? '+' : '-'}${utils.formatMoney(tx.amount)}
+                            </td>
+                            <td class="p-4">
+                                ${tx.status === 'done' 
+                                    ? `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200"><i data-lucide="check-circle" class="w-3 h-3"></i> Выполнено</span>` 
+                                    : `<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">В плане</span>`
+                                }
+                            </td>
+                            <td class="p-4 text-center">
+                                <div class="flex items-center justify-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                    ${tx.status === 'planned' ? `
+                                        <button onclick="app.markAsDone('${tx.id}')" title="Отметить как выполненное" class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><i data-lucide="check-circle" class="w-4 h-4"></i></button>
+                                    ` : `
+                                        <button onclick="app.markAsPlanned('${tx.id}')" title="Вернуть в план" class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"><i data-lucide="undo-2" class="w-4 h-4"></i></button>
+                                    `}
+                                    <button onclick="app.openModalForEdit('${tx.id}')" title="Редактировать" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                                    <button onclick="app.deleteTransaction('${tx.id}')" title="Удалить" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            },
+
+            // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
+
+            // Баланс
+            editBalance() {
+                state.ui.isEditingBalance = true;
+                state.ui.tempBalance = state.currentBalance;
+                this.renderBalance();
+            },
+            saveBalance() {
+                const input = document.getElementById('temp-balance-input');
+                state.currentBalance = Number(input.value) || 0;
+                state.ui.isEditingBalance = false;
+                this.saveState();
+                this.renderAll();
+            },
+            cancelEditBalance() {
+                state.ui.isEditingBalance = false;
+                this.renderBalance();
+            },
+
+            // Настройки прогноза
+            setForecastDays(days) {
+                state.forecastDays = Number(days);
+                this.renderAll();
+            },
+
+            // Фильтры
+            setFilter(key, value) {
+                state.filters[key] = value;
+                this.renderTableAndFilters();
+                lucide.createIcons();
+            },
+            resetFilters() {
+                state.filters = { type: 'all', category: '', dateFrom: '', dateTo: '' };
+                document.getElementById('filter-category').value = '';
+                document.getElementById('filter-date-from').value = '';
+                document.getElementById('filter-date-to').value = '';
+                this.renderTableAndFilters();
+                lucide.createIcons();
+            },
+
+            // Транзакции: Действия в таблице
+            markAsDone(id) {
+                const tx = state.transactions.find(t => t.id === id);
+                if (tx) {
+                    tx.status = 'done';
+                    state.currentBalance += (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                    this.saveState();
+                    this.renderAll();
+                }
+            },
+            markAsPlanned(id) {
+                const tx = state.transactions.find(t => t.id === id);
+                if (tx) {
+                    tx.status = 'planned';
+                    state.currentBalance -= (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                    this.saveState();
+                    this.renderAll();
+                }
+            },
+            deleteTransaction(id) {
+                const txIndex = state.transactions.findIndex(t => t.id === id);
+                if (txIndex > -1) {
+                    const tx = state.transactions[txIndex];
+                    if (tx.status === 'done') {
+                        state.currentBalance -= (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                    }
+                    state.transactions.splice(txIndex, 1);
+                    this.saveState();
+                    this.renderAll();
+                }
+            },
+
+            // Модальное окно
+            openModalForAdd() {
+                document.getElementById('modal-title').textContent = 'Новая операция';
+                document.getElementById('modal-tx-id').value = '';
+                document.getElementById('modal-date').value = utils.getDateOffset(0);
+                document.getElementById('modal-amount').value = '';
+                document.getElementById('modal-category').value = '';
+                document.getElementById('modal-comment').value = '';
+                document.getElementById('modal-submit-btn').textContent = 'Добавить';
+                
+                this.setModalType('income');
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            openModalForEdit(id) {
+                const tx = state.transactions.find(t => t.id === id);
+                if (!tx) return;
+
+                document.getElementById('modal-title').textContent = 'Редактировать операцию';
+                document.getElementById('modal-tx-id').value = tx.id;
+                document.getElementById('modal-date').value = tx.date;
+                document.getElementById('modal-amount').value = tx.amount;
+                document.getElementById('modal-category').value = tx.category;
+                document.getElementById('modal-comment').value = tx.comment || '';
+                document.getElementById('modal-submit-btn').textContent = 'Сохранить';
+                
+                this.setModalType(tx.type);
+                document.getElementById('modal-overlay').classList.remove('hidden');
+            },
+
+            closeModal() {
+                document.getElementById('modal-overlay').classList.add('hidden');
+            },
+
+            setModalType(type) {
+                state.ui.modalType = type;
+                
+                const btnIncome = document.getElementById('btn-type-income');
+                const btnExpense = document.getElementById('btn-type-expense');
+                const suggestionsContainer = document.getElementById('category-suggestions');
+
+                // Подтягиваем пользовательские категории из истории операций
+                const userCats = [...new Set(state.transactions.filter(t => t.type === type).map(t => t.category))];
+
+                if (type === 'income') {
+                    btnIncome.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all bg-white shadow-sm text-emerald-600';
+                    btnExpense.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all text-slate-500 hover:text-slate-700';
+                    
+                    const allCats = [...new Set([...INCOME_CATEGORIES, ...userCats])];
+                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs rounded-lg transition-colors border border-slate-200 shadow-sm">${c}</button>`).join('');
+                } else {
+                    btnExpense.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all bg-white shadow-sm text-rose-600';
+                    btnIncome.className = 'flex-1 py-2 text-sm font-medium rounded-md transition-all text-slate-500 hover:text-slate-700';
+                    
+                    const allCats = [...new Set([...EXPENSE_CATEGORIES, ...userCats])];
+                    suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs rounded-lg transition-colors border border-slate-200 shadow-sm">${c}</button>`).join('');
+                }
+            },
+
+            handleSubmit(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('modal-tx-id').value;
+                const type = state.ui.modalType;
+                const date = document.getElementById('modal-date').value;
+                const amount = Number(document.getElementById('modal-amount').value);
+                const category = document.getElementById('modal-category').value;
+                const comment = document.getElementById('modal-comment').value;
+
+                if (!amount || !category) return;
+
+                if (id) {
+                    // Редактирование
+                    const tx = state.transactions.find(t => t.id === id);
+                    if (tx) {
+                        // Корректировка баланса, если меняем выполненную транзакцию
+                        if (tx.status === 'done') {
+                            const oldVal = (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                            const newVal = (type === 'income' ? 1 : -1) * amount;
+                            state.currentBalance += (newVal - oldVal);
+                        }
+                        tx.type = type;
+                        tx.date = date;
+                        tx.amount = amount;
+                        tx.category = category;
+                        tx.comment = comment;
+                    }
+                } else {
+                    // Создание
+                    state.transactions.push({
+                        id: Date.now().toString(),
+                        type,
+                        date,
+                        amount,
+                        category,
+                        comment,
+                        status: 'planned'
+                    });
+                }
+
+                this.saveState();
+                this.renderAll();
+                this.closeModal();
+            }
+        };
+
+        // Запуск при загрузке страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
