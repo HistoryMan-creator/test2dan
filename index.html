@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Финансовый дашборд</title>
-    <!-- Настройка Tailwind для поддержки темной темы через класс -->
-    <script>
-        tailwind = {
-            config: {
-                darkMode: 'class',
-                theme: {
-                    extend: {}
-                }
-            }
-        }
-    </script>
+    
+    <!-- СНАЧАЛА подключаем саму библиотеку Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- ЗАТЕМ принудительно говорим ей слушаться нашего переключателя (class), а не системы -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        };
+    </script>
+    
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         /* Плавная смена темы */
@@ -33,7 +35,7 @@
                 <p class="text-slate-500 dark:text-slate-400 text-sm">Прогноз Cash Flow и учет (Vanilla JS)</p>
             </div>
             <div class="flex items-center gap-3">
-                <!-- Кнопка смены темы (Теперь работает через CSS) -->
+                <!-- Кнопка смены темы -->
                 <button onclick="app.toggleTheme()" class="p-2.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm" title="Переключить тему">
                     <div class="block dark:hidden"><i data-lucide="moon" class="w-5 h-5"></i></div>
                     <div class="hidden dark:block"><i data-lucide="sun" class="w-5 h-5"></i></div>
@@ -273,7 +275,6 @@
             },
 
             toggleTheme() {
-                // Надежное переключение класса на теге html
                 const isDark = document.documentElement.classList.contains('dark');
                 
                 if (isDark) {
@@ -285,7 +286,7 @@
                 }
                 
                 localStorage.setItem('finDash_theme', state.ui.theme);
-                this.renderChart(); // Обновляем цвета графика
+                this.renderChart(); // Обновляем цвета графика (остальное обновляется через CSS Tailwind)
             },
 
             // --- РЕНДЕРИНГ ---
