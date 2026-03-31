@@ -32,7 +32,13 @@
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Финансовый дашборд</h1>
-                <p class="text-slate-500 dark:text-slate-400 text-sm">Прогноз Cash Flow и учет (Vanilla JS)</p>
+                <p class="text-slate-500 dark:text-slate-400 text-sm flex items-center gap-2">
+                    Прогноз Cash Flow (Real-time Sync) 
+                    <span id="sync-status" class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                </p>
             </div>
             <div class="flex items-center gap-3">
                 <!-- Кнопка смены темы -->
@@ -58,7 +64,9 @@
                 </div>
                 <div class="flex-1">
                     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-1">Фактический баланс</p>
-                    <div id="balance-container"></div>
+                    <div id="balance-container">
+                        <div class="animate-pulse h-8 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    </div>
                 </div>
             </div>
             
@@ -69,7 +77,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Плановые доходы</p>
-                    <h2 id="stat-planned-income" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
+                    <h2 id="stat-planned-income" class="text-2xl font-bold text-slate-900 dark:text-white">...</h2>
                 </div>
             </div>
 
@@ -80,7 +88,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Плановые расходы</p>
-                    <h2 id="stat-planned-expense" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
+                    <h2 id="stat-planned-expense" class="text-2xl font-bold text-slate-900 dark:text-white">...</h2>
                 </div>
             </div>
 
@@ -91,7 +99,7 @@
                 </div>
                 <div>
                     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium" id="stat-expected-label">Ожидаемый баланс</p>
-                    <h2 id="stat-expected-balance" class="text-2xl font-bold text-slate-900 dark:text-white">0 ₽</h2>
+                    <h2 id="stat-expected-balance" class="text-2xl font-bold text-slate-900 dark:text-white">...</h2>
                 </div>
             </div>
         </div>
@@ -112,7 +120,11 @@
                     </select>
                 </div>
             </div>
-            <div id="chart-container"></div>
+            <div id="chart-container">
+                <div class="w-full h-[300px] flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                    <p class="text-slate-400">Загрузка данных...</p>
+                </div>
+            </div>
             <p class="text-xs text-center text-slate-400 dark:text-slate-500 mt-2"><i data-lucide="mouse-pointer-click" class="w-3 h-3 inline"></i> Кликните на любую точку графика, чтобы посмотреть точный баланс</p>
         </div>
 
@@ -161,6 +173,14 @@
                     </thead>
                     <tbody id="table-body">
                         <!-- Transactions will be rendered here -->
+                        <tr>
+                            <td colspan="5" class="p-12 text-center">
+                                <div class="flex flex-col items-center justify-center text-slate-400">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mb-3"></div>
+                                    <p>Загрузка данных...</p>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -215,12 +235,35 @@
         </div>
     </div>
 
-    <!-- ВЕСЬ JS КОД -->
-    <script>
-        // --- УТИЛИТЫ ---
+    <!-- FIREBASE & JS LOGIC (ТЕПЕРЬ КАК MODULE) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // === НАСТРОЙКИ FIREBASE ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8MgkWnG-zzlSR2oRrecimP76HYMDpZgc",
+            authDomain: "danys-520ce.firebaseapp.com",
+            projectId: "danys-520ce",
+            storageBucket: "danys-520ce.firebasestorage.app",
+            messagingSenderId: "729072631374",
+            appId: "1:729072631374:web:b9917f568acddb572c8d1f"
+        };
+
+        const appInstance = initializeApp(firebaseConfig);
+        const auth = getAuth(appInstance);
+        const db = getFirestore(appInstance);
+        
+        // Произвольный ID для вашего проекта (папка в базе данных)
+        const appId = 'fin-dash-dany';
+        let currentUser = null;
+
+        // === УТИЛИТЫ ===
         const utils = {
             formatMoney: (amount) => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount),
             formatDate: (dateString) => {
+                if (!dateString) return '';
                 const [year, month, day] = dateString.split('-');
                 return new Date(year, month - 1, day).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
             },
@@ -237,10 +280,10 @@
         const INCOME_CATEGORIES = ["Икеа", "Лаппа", "Кредит", "Возврат долга"];
         const EXPENSE_CATEGORIES = ["Заказ Икеа", "Логистика из Европы", "Фулфилмент Александр", "Фулфилмент Казань", "Заказ Лаппа", "Кальянка", "Зп Раф", "Зп Илья", "Зп Данил"];
 
-        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
+        // === СОСТОЯНИЕ ПРИЛОЖЕНИЯ ===
         const state = {
-            currentBalance: Number(localStorage.getItem('finDash_balance')) || 0,
-            transactions: JSON.parse(localStorage.getItem('finDash_transactions')) || [],
+            currentBalance: 0,
+            transactions: [],
             forecastDays: 30,
             filters: {
                 type: 'all',
@@ -257,26 +300,77 @@
             }
         };
 
-        // --- ОСНОВНАЯ ЛОГИКА ---
+        // === FIREBASE РАБОТА С ДАННЫМИ ===
+        // Пути к данным (используем публичные общие коллекции)
+        const txCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
+        const balanceDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'balance');
+
+        async function saveRemoteTx(tx) {
+            if (!currentUser) return;
+            await setDoc(doc(txCollectionRef, tx.id), tx);
+        }
+
+        async function deleteRemoteTx(id) {
+            if (!currentUser) return;
+            await deleteDoc(doc(txCollectionRef, id));
+        }
+
+        async function updateRemoteBalance(newBalance) {
+            if (!currentUser) return;
+            await setDoc(balanceDocRef, { value: Number(newBalance) });
+        }
+
+        function startRealtimeListeners() {
+            // Слушаем транзакции
+            onSnapshot(txCollectionRef, (snapshot) => {
+                const txs = [];
+                snapshot.forEach(doc => txs.push(doc.data()));
+                state.transactions = txs;
+                app.renderAll(); // Авто-обновление интерфейса при любых изменениях базы
+            }, (err) => console.error("Tx Listener Error:", err));
+
+            // Слушаем баланс
+            onSnapshot(balanceDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    state.currentBalance = docSnap.data().value;
+                } else {
+                    state.currentBalance = 0;
+                }
+                app.renderAll();
+            }, (err) => console.error("Balance Listener Error:", err));
+        }
+
+        // === АВТОРИЗАЦИЯ FIREBASE ===
+        const initAuth = async () => {
+            try {
+                // Подключаемся к вашему Firebase анонимно
+                await signInAnonymously(auth);
+            } catch (error) {
+                console.error("Ошибка авторизации Firebase. Убедитесь, что включен Anonymous Auth:", error);
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                startRealtimeListeners();
+            }
+        });
+
+        // === ОСНОВНАЯ ЛОГИКА UI ===
         const app = {
             init() {
-                // Жестко проверяем и применяем тему при запуске
                 if (state.ui.theme === 'dark') {
                     document.documentElement.classList.add('dark');
                 } else {
                     document.documentElement.classList.remove('dark');
                 }
-                this.renderAll();
-            },
-
-            saveState() {
-                localStorage.setItem('finDash_balance', state.currentBalance.toString());
-                localStorage.setItem('finDash_transactions', JSON.stringify(state.transactions));
+                lucide.createIcons();
+                initAuth(); // Запуск аутентификации
             },
 
             toggleTheme() {
                 const isDark = document.documentElement.classList.contains('dark');
-                
                 if (isDark) {
                     document.documentElement.classList.remove('dark');
                     state.ui.theme = 'light';
@@ -284,12 +378,10 @@
                     document.documentElement.classList.add('dark');
                     state.ui.theme = 'dark';
                 }
-                
                 localStorage.setItem('finDash_theme', state.ui.theme);
-                this.renderChart(); // Обновляем цвета графика (остальное обновляется через CSS Tailwind)
+                this.renderChart();
             },
 
-            // --- РЕНДЕРИНГ ---
             renderAll() {
                 this.renderBalance();
                 this.renderStatsAndAlerts();
@@ -317,7 +409,6 @@
                         </div>
                     `;
                 }
-                lucide.createIcons();
             },
 
             calculateForecast() {
@@ -356,7 +447,6 @@
             renderStatsAndAlerts() {
                 const forecast = this.calculateForecast();
                 
-                // Alerts
                 const alertsContainer = document.getElementById('alerts-container');
                 if (forecast.firstGap) {
                     alertsContainer.innerHTML = `
@@ -372,7 +462,6 @@
                     alertsContainer.innerHTML = '';
                 }
 
-                // Stats
                 const plannedIncome = state.transactions.filter(t => t.type === 'income' && t.status === 'planned').reduce((s, t) => s + Number(t.amount), 0);
                 const plannedExpense = state.transactions.filter(t => t.type === 'expense' && t.status === 'planned').reduce((s, t) => s + Number(t.amount), 0);
                 
@@ -402,7 +491,7 @@
                 const { chartData } = this.calculateForecast();
                 
                 if (chartData.length === 0) {
-                    container.innerHTML = '';
+                    container.innerHTML = `<div class="w-full h-[300px] flex items-center justify-center bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 text-slate-400">Нет данных для графика</div>`;
                     return;
                 }
 
@@ -424,7 +513,6 @@
                 const zeroY = getY(0);
                 const points = chartData.map((d, i) => `${getX(i)},${getY(d.balance)}`).join(' ');
 
-                // Цветовая схема
                 const gridLineColor = isDark ? '#334155' : '#94a3b8';
                 const gapBgColor = isDark ? '#451a1e' : '#fef2f2';
                 const gapLineColor = isDark ? '#ef4444' : '#ef4444';
@@ -436,7 +524,6 @@
                             <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto min-w-[600px] font-sans relative z-0">
                                 <line x1="${paddingX}" y1="${zeroY}" x2="${width - paddingX}" y2="${zeroY}" stroke="${gridLineColor}" stroke-width="1" stroke-dasharray="4 4" />`;
                 
-                // Зоны кассового разрыва (красный фон)
                 chartData.forEach((d, i) => {
                     if (d.balance < 0 && i < chartData.length - 1) {
                         const x1 = getX(i);
@@ -445,10 +532,8 @@
                     }
                 });
 
-                // Основная линия графика
                 svg += `<polyline points="${points}" fill="none" stroke="${mainLineColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
 
-                // Отрисовка точек и текста (кроме активной)
                 chartData.forEach((d, i) => {
                     const hasIncome = d.income > 0;
                     const hasExpense = d.expense > 0;
@@ -459,7 +544,6 @@
 
                     svg += `<circle cx="${getX(i)}" cy="${getY(d.balance)}" r="${isImportant ? 4 : 2}" fill="${d.isGap ? gapLineColor : pointBgColor}" stroke="${d.isGap ? gapLineColor : mainLineColor}" stroke-width="2" />`;
                     
-                    // Текст подписываем только для важных, неактивных точек
                     if ((i % 5 === 0 || i === chartData.length - 1 || d.isGap) && !isHovered) {
                         svg += `<text x="${getX(i)}" y="${height - 10}" font-size="10" fill="${textColor}" text-anchor="middle">${d.label}</text>`;
                     }
@@ -471,32 +555,27 @@
                     }
                 });
 
-                // Отрисовка Активной карточки (Tooltip) поверх всего
                 if (state.ui.activeChartPoint !== null && chartData[state.ui.activeChartPoint]) {
                     const i = state.ui.activeChartPoint;
                     const d = chartData[i];
                     const actX = getX(i);
                     const actY = getY(d.balance);
                     
-                    // Вертикальная пунктирная направляющая
                     svg += `<line x1="${actX}" y1="${paddingY}" x2="${actX}" y2="${height - paddingY}" stroke="${isDark ? '#64748b' : '#94a3b8'}" stroke-width="1" stroke-dasharray="4 4" />`;
-                    // Увеличенная точка
                     svg += `<circle cx="${actX}" cy="${actY}" r="6" fill="${mainLineColor}" stroke="${pointBgColor}" stroke-width="2" />`;
 
-                    // Карточка
                     const boxW = 140;
                     const boxH = 65;
                     let boxX = actX - boxW / 2;
                     if (boxX < 0) boxX = 0;
                     if (boxX + boxW > width) boxX = width - boxW;
                     let boxY = actY - boxH - 15;
-                    if (boxY < 0) boxY = actY + 20; // Опускаем вниз, если не влезает наверх
+                    if (boxY < 0) boxY = actY + 20;
 
                     svg += `<rect x="${boxX}" y="${boxY}" width="${boxW}" height="${boxH}" fill="${isDark ? '#1e293b' : '#ffffff'}" stroke="${isDark ? '#475569' : '#e2e8f0'}" stroke-width="1" rx="6" />`;
                     svg += `<text x="${boxX + boxW/2}" y="${boxY + 20}" font-size="12" fill="${textColor}" text-anchor="middle">${d.label}</text>`;
                     svg += `<text x="${boxX + boxW/2}" y="${boxY + 40}" font-size="16" fill="${isDark ? '#f8fafc' : '#0f172a'}" text-anchor="middle" font-weight="bold">${utils.formatMoney(d.balance)}</text>`;
                     
-                    // Мелкие доходы/расходы в тултипе
                     if (d.income > 0 || d.expense > 0) {
                         let subText = '';
                         if (d.income > 0) subText += `+${utils.formatMoney(d.income)} `;
@@ -505,34 +584,23 @@
                     }
                 }
 
-                // Интерактивные прозрачные хитбоксы для клика (поверх всех слоев)
                 svg += `<g id="hitboxes">`;
                 chartData.forEach((d, i) => {
                     const x1 = i === 0 ? 0 : getX(i) - (getX(i) - getX(i-1))/2;
                     const x2 = i === chartData.length - 1 ? width : getX(i) + (getX(i+1) - getX(i))/2;
-                    // Прозрачный прямоугольник на всю высоту столбца
                     svg += `<rect x="${x1}" y="0" width="${x2-x1}" height="${height}" fill="transparent" cursor="pointer" onclick="app.setActiveChartPoint(${i})" />`;
                 });
-                svg += `</g>`;
-
-                svg += `</svg></div>`;
+                svg += `</g></svg></div>`;
                 container.innerHTML = svg;
             },
 
             renderTableAndFilters() {
-                // Render Type Filters
                 const baseClass = "flex-1 md:flex-none px-4 py-1.5 text-sm rounded-md transition-colors ";
                 const inactiveClass = baseClass + "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200";
                 
-                const allClass = state.filters.type === 'all' 
-                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-white" 
-                    : inactiveClass;
-                const incomeClass = state.filters.type === 'income' 
-                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-emerald-600 dark:text-emerald-400" 
-                    : inactiveClass;
-                const expenseClass = state.filters.type === 'expense' 
-                    ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-rose-600 dark:text-rose-400" 
-                    : inactiveClass;
+                const allClass = state.filters.type === 'all' ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-white" : inactiveClass;
+                const incomeClass = state.filters.type === 'income' ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-emerald-600 dark:text-emerald-400" : inactiveClass;
+                const expenseClass = state.filters.type === 'expense' ? baseClass + "bg-white dark:bg-slate-700 shadow-sm font-medium text-rose-600 dark:text-rose-400" : inactiveClass;
 
                 document.getElementById('type-filters').innerHTML = `
                     <button onclick="app.setFilter('type', 'all')" class="${allClass}">Все</button>
@@ -540,7 +608,6 @@
                     <button onclick="app.setFilter('type', 'expense')" class="${expenseClass}">Расходы</button>
                 `;
 
-                // Categories dropdown options
                 const uniqueCategories = [...new Set(state.transactions.map(t => t.category))].filter(Boolean);
                 let catOptions = `<option value="">Все категории</option>`;
                 uniqueCategories.forEach(cat => {
@@ -548,7 +615,6 @@
                 });
                 document.getElementById('filter-category').innerHTML = catOptions;
 
-                // Reset button
                 const resetContainer = document.getElementById('reset-filter-container');
                 if (state.filters.category || state.filters.dateFrom || state.filters.dateTo || state.filters.type !== 'all') {
                     resetContainer.innerHTML = `<button onclick="app.resetFilters()" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors w-full md:w-auto flex items-center justify-center gap-1"><i data-lucide="filter" class="w-4 h-4"></i> Сбросить</button>`;
@@ -556,7 +622,6 @@
                     resetContainer.innerHTML = '';
                 }
 
-                // Filter transactions
                 const filtered = state.transactions
                     .filter(t => state.filters.type === 'all' ? true : t.type === state.filters.type)
                     .filter(t => state.filters.category === '' ? true : t.category === state.filters.category)
@@ -564,7 +629,6 @@
                     .filter(t => state.filters.dateTo === '' ? true : t.date <= state.filters.dateTo)
                     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-                // Render Table Body
                 const tbody = document.getElementById('table-body');
                 if (filtered.length === 0) {
                     tbody.innerHTML = `
@@ -573,7 +637,6 @@
                                 <div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
                                     <i data-lucide="calendar" class="w-8 h-8 mb-2 opacity-50"></i>
                                     <p>Нет операций для отображения</p>
-                                    <p class="text-xs mt-1">Измените фильтры или добавьте новую</p>
                                 </div>
                             </td>
                         </tr>
@@ -618,9 +681,7 @@
                 }
             },
 
-            // --- ОБРАБОТЧИКИ СОБЫТИЙ ---
-
-            // Баланс
+            // --- ОБРАБОТЧИКИ СОБЫТИЙ С FIREBASE ---
             editBalance() {
                 state.ui.isEditingBalance = true;
                 state.ui.tempBalance = state.currentBalance;
@@ -628,24 +689,21 @@
             },
             saveBalance() {
                 const input = document.getElementById('temp-balance-input');
-                state.currentBalance = Number(input.value) || 0;
+                const newVal = Number(input.value) || 0;
                 state.ui.isEditingBalance = false;
-                this.saveState();
-                this.renderAll();
+                updateRemoteBalance(newVal); 
+                // Не вызываем render() вручную, так как onSnapshot обновит всё автоматически
             },
             cancelEditBalance() {
                 state.ui.isEditingBalance = false;
                 this.renderBalance();
             },
 
-            // Настройки прогноза
             setForecastDays(days) {
                 state.forecastDays = Number(days);
-                state.ui.activeChartPoint = null; // Сбрасываем выбор при смене диапазона
+                state.ui.activeChartPoint = null;
                 this.renderAll();
             },
-
-            // Фильтры
             setFilter(key, value) {
                 state.filters[key] = value;
                 this.renderTableAndFilters();
@@ -660,39 +718,33 @@
                 lucide.createIcons();
             },
 
-            // Транзакции: Действия в таблице
             markAsDone(id) {
                 const tx = state.transactions.find(t => t.id === id);
                 if (tx) {
-                    tx.status = 'done';
-                    state.currentBalance += (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
-                    this.saveState();
-                    this.renderAll();
+                    const newBalance = state.currentBalance + (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                    saveRemoteTx({ ...tx, status: 'done' });
+                    updateRemoteBalance(newBalance);
                 }
             },
             markAsPlanned(id) {
                 const tx = state.transactions.find(t => t.id === id);
                 if (tx) {
-                    tx.status = 'planned';
-                    state.currentBalance -= (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
-                    this.saveState();
-                    this.renderAll();
+                    const newBalance = state.currentBalance - (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                    saveRemoteTx({ ...tx, status: 'planned' });
+                    updateRemoteBalance(newBalance);
                 }
             },
             deleteTransaction(id) {
-                const txIndex = state.transactions.findIndex(t => t.id === id);
-                if (txIndex > -1) {
-                    const tx = state.transactions[txIndex];
+                const tx = state.transactions.find(t => t.id === id);
+                if (tx) {
                     if (tx.status === 'done') {
-                        state.currentBalance -= (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                        const newBalance = state.currentBalance - (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
+                        updateRemoteBalance(newBalance);
                     }
-                    state.transactions.splice(txIndex, 1);
-                    this.saveState();
-                    this.renderAll();
+                    deleteRemoteTx(id);
                 }
             },
 
-            // Модальное окно
             openModalForAdd() {
                 document.getElementById('modal-title').textContent = 'Новая операция';
                 document.getElementById('modal-tx-id').value = '';
@@ -732,21 +784,17 @@
                 const btnIncome = document.getElementById('btn-type-income');
                 const btnExpense = document.getElementById('btn-type-expense');
                 const suggestionsContainer = document.getElementById('category-suggestions');
-
                 const userCats = [...new Set(state.transactions.filter(t => t.type === type).map(t => t.category))];
-
                 const baseBtnClass = 'flex-1 py-2 text-sm font-medium rounded-md transition-all ';
 
                 if (type === 'income') {
                     btnIncome.className = baseBtnClass + 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400';
                     btnExpense.className = baseBtnClass + 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200';
-                    
                     const allCats = [...new Set([...INCOME_CATEGORIES, ...userCats])];
                     suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg transition-colors border border-slate-200 dark:border-slate-600 shadow-sm">${c}</button>`).join('');
                 } else {
                     btnExpense.className = baseBtnClass + 'bg-white dark:bg-slate-700 shadow-sm text-rose-600 dark:text-rose-400';
                     btnIncome.className = baseBtnClass + 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200';
-                    
                     const allCats = [...new Set([...EXPENSE_CATEGORIES, ...userCats])];
                     suggestionsContainer.innerHTML = allCats.map(c => `<button type="button" onclick="document.getElementById('modal-category').value = '${c}'" class="px-3 py-1.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg transition-colors border border-slate-200 dark:border-slate-600 shadow-sm">${c}</button>`).join('');
                 }
@@ -763,6 +811,8 @@
                 const comment = document.getElementById('modal-comment').value;
 
                 if (!amount || !category) return;
+                
+                let updatedBalance = state.currentBalance;
 
                 if (id) {
                     const tx = state.transactions.find(t => t.id === id);
@@ -770,31 +820,29 @@
                         if (tx.status === 'done') {
                             const oldVal = (tx.type === 'income' ? 1 : -1) * Number(tx.amount);
                             const newVal = (type === 'income' ? 1 : -1) * amount;
-                            state.currentBalance += (newVal - oldVal);
+                            updatedBalance += (newVal - oldVal);
                         }
-                        tx.type = type;
-                        tx.date = date;
-                        tx.amount = amount;
-                        tx.category = category;
-                        tx.comment = comment;
+                        const updatedTx = { ...tx, type, date, amount, category, comment };
+                        saveRemoteTx(updatedTx);
                     }
                 } else {
-                    state.transactions.push({
-                        id: Date.now().toString(),
-                        type,
-                        date,
-                        amount,
-                        category,
-                        comment,
-                        status: 'planned'
-                    });
+                    const newTx = {
+                        id: Date.now().toString() + Math.floor(Math.random() * 1000), // Добавил рандом для уникальности
+                        type, date, amount, category, comment, status: 'planned'
+                    };
+                    saveRemoteTx(newTx);
                 }
 
-                this.saveState();
-                this.renderAll();
+                if (updatedBalance !== state.currentBalance) {
+                    updateRemoteBalance(updatedBalance);
+                }
+
                 this.closeModal();
             }
         };
+
+        // Делаем доступными для inline-вызовов из HTML
+        window.app = app;
 
         window.addEventListener('DOMContentLoaded', () => {
             app.init();
